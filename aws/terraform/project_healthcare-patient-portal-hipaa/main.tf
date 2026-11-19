@@ -297,6 +297,10 @@ resource "aws_instance" "web_server_1" {
     Environment = var.environment
     Role        = "web-server"
   }
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
 }
 
 resource "aws_instance" "web_server_2" {
@@ -315,6 +319,10 @@ resource "aws_instance" "web_server_2" {
     Name        = "hipaa-compliant-patient-portal-ec2-web-2"
     Environment = var.environment
     Role        = "web-server"
+  }
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
   }
 }
 
@@ -354,13 +362,14 @@ resource "aws_db_instance" "hipaa_database" {
   password               = var.db_password
   vpc_security_group_ids = [aws_security_group.db_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.hipaa_db_subnet_group.name
-  publicly_accessible    = true
+  publicly_accessible = false
   skip_final_snapshot    = true
 
   tags = {
     Name        = "hipaa-compliant-patient-portal-rds-mysql"
     Environment = var.environment
   }
+  storage_encrypted = true
 }
 
 # S3 Bucket for File Storage - VULNERABLE: Missing public access block
@@ -407,7 +416,7 @@ resource "aws_s3_bucket_public_access_block" "backup_storage_pab" {
 
   block_public_acls       = true
   block_public_policy     = true
-  ignore_public_acls      = false
+  ignore_public_acls = true
   restrict_public_buckets = true
 }
 
@@ -454,6 +463,8 @@ resource "aws_cloudtrail" "hipaa_audit_trail" {
     Name        = "hipaa-compliant-patient-portal-cloudtrail-main"
     Environment = var.environment
   }
+  enable_log_file_validation = true
+  is_multi_region_trail = true
 }
 
 resource "random_id" "bucket_suffix" {
